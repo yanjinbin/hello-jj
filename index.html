@@ -1,0 +1,1249 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="面向 Git 熟练用户的 Jujutsu VCS baby-step 教程，重点讲 agent coding 工作流。"
+    />
+    <title>jj Agent Coding Baby Steps</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #20242c;
+        --muted: #667085;
+        --paper: #f7f9fc;
+        --panel: #ffffff;
+        --line: #d8e0ea;
+        --code: #111827;
+        --code-text: #edf3ff;
+        --teal: #0f766e;
+        --teal-soft: #e1f3f0;
+        --blue: #2563eb;
+        --blue-soft: #e8f0ff;
+        --amber: #b45309;
+        --amber-soft: #fff2d8;
+        --red: #b42318;
+        --red-soft: #ffe7e3;
+        --green: #15803d;
+        --green-soft: #e7f6e9;
+        --shadow: 0 18px 48px rgba(32, 36, 44, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        line-height: 1.65;
+      }
+
+      a {
+        color: inherit;
+        text-decoration-color: rgba(37, 99, 235, 0.45);
+        text-underline-offset: 4px;
+      }
+
+      code,
+      pre {
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      }
+
+      code {
+        border-radius: 5px;
+        background: #eef2f7;
+        padding: 2px 5px;
+      }
+
+      .hero {
+        background:
+          linear-gradient(135deg, rgba(225, 243, 240, 0.95), transparent 44%),
+          linear-gradient(315deg, rgba(232, 240, 255, 0.9), transparent 42%),
+          #ffffff;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .hero-inner,
+      .layout,
+      .footer-inner {
+        width: min(1180px, calc(100vw - 40px));
+        margin: 0 auto;
+      }
+
+      .hero-inner {
+        display: grid;
+        grid-template-columns: minmax(0, 1.02fr) minmax(330px, 0.98fr);
+        gap: 42px;
+        align-items: center;
+        padding: 50px 0 36px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        margin: 0 0 12px;
+        color: var(--teal);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--teal);
+      }
+
+      h1,
+      h2,
+      h3 {
+        letter-spacing: 0;
+        line-height: 1.18;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(36px, 5.6vw, 64px);
+      }
+
+      h2 {
+        margin: 0 0 14px;
+        font-size: clamp(28px, 3.4vw, 42px);
+      }
+
+      h3 {
+        margin: 0 0 10px;
+        font-size: 21px;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      .lead {
+        margin-top: 18px;
+        max-width: 760px;
+        color: var(--muted);
+        font-size: 18px;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 26px;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--ink);
+        border-radius: 8px;
+        padding: 10px 16px;
+        background: var(--ink);
+        color: #ffffff;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .button.secondary {
+        border-color: var(--line);
+        background: #ffffff;
+        color: var(--ink);
+      }
+
+      .workflow-map {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: var(--shadow);
+        padding: 20px;
+      }
+
+      .map-title {
+        margin-bottom: 14px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .map-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .map-node {
+        min-height: 92px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 12px;
+      }
+
+      .map-node.git {
+        background: var(--amber-soft);
+        border-color: #f0c27c;
+      }
+
+      .map-node.jj {
+        background: var(--teal-soft);
+        border-color: #89cfc6;
+      }
+
+      .map-node strong,
+      .map-node span {
+        display: block;
+      }
+
+      .map-node span {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.42;
+      }
+
+      .progress-panel {
+        margin-top: 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 14px;
+      }
+
+      .progress-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .progress-track {
+        height: 9px;
+        margin-top: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e9eef5;
+      }
+
+      .progress-bar {
+        width: 0;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--teal), var(--blue));
+        transition: width 180ms ease;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr);
+        gap: 42px;
+        padding: 34px 0 72px;
+      }
+
+      .toc {
+        position: sticky;
+        top: 18px;
+        align-self: start;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 16px;
+      }
+
+      .toc p {
+        margin-bottom: 10px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .toc a {
+        display: block;
+        border-radius: 6px;
+        padding: 8px 10px;
+        text-decoration: none;
+        font-size: 14px;
+      }
+
+      .toc a:hover {
+        background: #eef2f7;
+      }
+
+      section {
+        padding: 40px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      section:first-child {
+        padding-top: 8px;
+      }
+
+      section:last-child {
+        border-bottom: 0;
+      }
+
+      .section-lead {
+        margin-bottom: 20px;
+        color: var(--muted);
+        font-size: 17px;
+      }
+
+      .card,
+      .step-card,
+      .mini-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .card {
+        padding: 18px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .triple {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .mini-card {
+        padding: 16px;
+      }
+
+      .mini-card p,
+      .card p {
+        color: var(--muted);
+      }
+
+      .badge {
+        display: inline-flex;
+        margin-bottom: 10px;
+        border-radius: 999px;
+        background: #eef2f7;
+        color: var(--muted);
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .step-list {
+        display: grid;
+        gap: 18px;
+      }
+
+      .step-card {
+        overflow: hidden;
+      }
+
+      .step-head {
+        display: grid;
+        grid-template-columns: 54px minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        padding: 18px;
+        background: #ffffff;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .step-num {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #ffffff;
+        font-weight: 900;
+      }
+
+      .step-kicker {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .step-title {
+        margin: 2px 0 0;
+        font-size: 22px;
+        font-weight: 850;
+        line-height: 1.2;
+      }
+
+      .done-toggle {
+        min-width: 118px;
+        min-height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        color: var(--ink);
+        cursor: pointer;
+        font-weight: 800;
+      }
+
+      .done-toggle[data-done="true"] {
+        border-color: #8bcf9a;
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .step-body {
+        display: grid;
+        gap: 16px;
+        padding: 18px;
+      }
+
+      .step-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 16px;
+      }
+
+      .box {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfe;
+        padding: 14px;
+      }
+
+      .box-title {
+        margin-bottom: 8px;
+        color: var(--ink);
+        font-size: 14px;
+        font-weight: 850;
+      }
+
+      .box p,
+      .box li {
+        color: var(--muted);
+      }
+
+      .box ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      .shell-wrap {
+        position: relative;
+      }
+
+      .shell {
+        margin: 0;
+        overflow-x: auto;
+        border-radius: 8px;
+        background: var(--code);
+        color: var(--code-text);
+        padding: 16px;
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .copy {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        min-height: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .callout {
+        border-left: 4px solid var(--blue);
+        border-radius: 8px;
+        background: var(--blue-soft);
+        padding: 15px 16px;
+      }
+
+      .callout.warning {
+        border-left-color: var(--red);
+        background: var(--red-soft);
+      }
+
+      .callout.good {
+        border-left-color: var(--green);
+        background: var(--green-soft);
+      }
+
+      .callout strong {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      .compare {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: inset 0 0 0 1px var(--line);
+      }
+
+      .compare th,
+      .compare td {
+        border-bottom: 1px solid var(--line);
+        padding: 13px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .compare th {
+        background: #eef2f7;
+        font-size: 14px;
+      }
+
+      .compare tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .compare td {
+        color: var(--muted);
+      }
+
+      .footer {
+        border-top: 1px solid var(--line);
+        background: #ffffff;
+      }
+
+      .footer-inner {
+        padding: 24px 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      @media (max-width: 980px) {
+        .hero-inner,
+        .layout,
+        .grid,
+        .triple,
+        .step-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .toc {
+          position: static;
+        }
+
+        .map-row {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        .hero-inner,
+        .layout,
+        .footer-inner {
+          width: min(100% - 28px, 1180px);
+        }
+
+        .hero-inner {
+          padding-top: 36px;
+        }
+
+        .map-row,
+        .step-head {
+          grid-template-columns: 1fr;
+        }
+
+        .done-toggle {
+          width: 100%;
+        }
+
+        .compare {
+          display: block;
+          overflow-x: auto;
+          white-space: nowrap;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-inner">
+        <div>
+          <p class="eyebrow">Baby steps for Git users</p>
+          <h1>用 jj 管 agent coding：一步一步过</h1>
+          <p class="lead">
+            你已经会 Git 分支、合并、rebase main/master 保持主线干净。
+            这份教程不重复 Git 基础，只把你熟悉的工作流迁移成 jj 的
+            change stack、workspace、rebase 和 bookmark。
+          </p>
+          <div class="hero-actions">
+            <a class="button" href="#steps">开始步骤</a>
+            <a class="button secondary" href="#cheatsheet">命令速查</a>
+          </div>
+        </div>
+
+        <div class="workflow-map" aria-label="jj agent coding 流程摘要">
+          <div class="map-title">你要建立的新肌肉记忆</div>
+          <div class="map-row">
+            <div class="map-node git">
+              <strong>原 Git 流</strong>
+              <span>feature branch 开发，持续 rebase main</span>
+            </div>
+            <div class="map-node jj">
+              <strong>jj 本地流</strong>
+              <span>change stack 承载开发过程</span>
+            </div>
+            <div class="map-node jj">
+              <strong>agent 隔离</strong>
+              <span>一个 agent 一个 workspace</span>
+            </div>
+            <div class="map-node git">
+              <strong>远端协作</strong>
+              <span>最后 bookmark + push</span>
+            </div>
+          </div>
+          <div class="progress-panel">
+            <div class="progress-top">
+              <span>教程进度</span>
+              <span id="progressText">0 / 11</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-bar" id="progressBar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <nav class="toc" aria-label="教程导航">
+        <p>教程导航</p>
+        <a href="#mental-model">先换脑子</a>
+        <a href="#mapping">Git 对照表</a>
+        <a href="#steps">Baby steps</a>
+        <a href="#agent-prompt">给 agent 的指令</a>
+          <a href="#deploy">部署到 Vercel</a>
+          <a href="#pitfalls">常见坑</a>
+        <a href="#cheatsheet">速查</a>
+      </nav>
+
+      <article>
+        <section id="mental-model">
+          <h2>0. 先换脑子：branch 不再是本地开发单位</h2>
+          <p class="section-lead">
+            在 Git 里，feature branch 是开发单位。在 jj 里，开发单位是 change。
+            多个 change 串起来就是 stack。bookmark 只是推给 Git 远端时的名字。
+          </p>
+          <div class="grid">
+            <div class="card">
+              <span class="badge">你原来的习惯</span>
+              <h3>branch-first</h3>
+              <p>
+                先 <code>git checkout -b feature/foo</code>，开发、提交、rebase main，
+                最后 push 这个 branch。
+              </p>
+            </div>
+            <div class="card">
+              <span class="badge">jj 的习惯</span>
+              <h3>change-first</h3>
+              <p>
+                直接 <code>jj new</code> 开始一个 change。agent 可以产出一串 change。
+                你整理完后才 <code>bookmark set</code>。
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="mapping">
+          <h2>1. Git 到 jj 的最小映射</h2>
+          <table class="compare">
+            <thead>
+              <tr>
+                <th>你熟悉的 Git</th>
+                <th>jj 里怎么想</th>
+                <th>agent coding 里的动作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>commit</code></td>
+                <td><code>change</code> 是任务身份，commit id 是快照哈希</td>
+                <td>agent 每个逻辑步骤写成一个 change；内容变了 commit id 会变</td>
+              </tr>
+              <tr>
+                <td><code>git add</code> / 暂存区</td>
+                <td>working copy 本身就是 <code>@</code> 这个 commit</td>
+                <td>不用 stage；先写出来，之后用 <code>split</code> / <code>squash -i</code> 整理</td>
+              </tr>
+              <tr>
+                <td>feature branch</td>
+                <td>本地是匿名 change stack</td>
+                <td>agent 不需要起分支名，避免命名和推送污染</td>
+              </tr>
+              <tr>
+                <td><code>git worktree</code></td>
+                <td><code>jj workspace</code></td>
+                <td>一个 agent 一个目录，互不抢工作区</td>
+              </tr>
+              <tr>
+                <td><code>git rebase origin/main</code></td>
+                <td><code>jj rebase -b @ -d main@origin</code></td>
+                <td>review 完，把当前 stack 整体搬到最新主线后面</td>
+              </tr>
+              <tr>
+                <td>PR branch</td>
+                <td><code>bookmark</code></td>
+                <td>最后才创建或移动 bookmark，然后 push</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="steps">
+          <h2>2. Baby steps：照着做，过一关勾一关</h2>
+          <p class="section-lead">
+            这套流程可以直接用于真实项目。主线名如果是 <code>master</code>，把命令里的
+            <code>main</code> 替换成 <code>master</code>。
+          </p>
+
+          <div class="step-list">
+            <article class="step-card" id="step-1">
+              <div class="step-head">
+                <div class="step-num">1</div>
+                <div>
+                  <div class="step-kicker">准备</div>
+                  <div class="step-title">确认这是 jj + Git 共存仓库</div>
+                </div>
+                <button class="done-toggle" data-step="1">标记完成</button>
+              </div>
+              <div class="step-body">
+                <div class="shell-wrap">
+                  <button class="copy" data-copy>复制</button>
+                  <pre class="shell"><code>jj --version
+jj st
+jj log --limit 5</code></pre>
+                </div>
+                <div class="step-grid">
+                  <div class="box">
+                    <div class="box-title">通过标准</div>
+                    <ul>
+                      <li><code>jj st</code> 能显示 working copy。</li>
+                      <li><code>jj log</code> 能看到 <code>@</code> 和父节点。</li>
+                    </ul>
+                  </div>
+                  <div class="box">
+                    <div class="box-title">如果失败</div>
+                    <p>
+                      已有 Git 仓库用 <code>jj git init --colocate</code> 接管。
+                      新仓库可以直接 <code>jj git init</code>。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="step-card" id="step-2">
+              <div class="step-head">
+                <div class="step-num">2</div>
+                <div>
+                  <div class="step-kicker">同步</div>
+                  <div class="step-title">先把主线拉到最新</div>
+                </div>
+                <button class="done-toggle" data-step="2">标记完成</button>
+              </div>
+              <div class="step-body">
+                <div class="shell-wrap">
+                  <button class="copy" data-copy>复制</button>
+                  <pre class="shell"><code>jj git fetch
+jj log -r 'all()' --limit 12</code></pre>
+                </div>
+                <div class="callout">
+                  <strong>Git 对应动作</strong>
+                  <p>
+                    这一步对应 <code>git fetch origin</code>。你后面 rebase 的目标通常是
+                    <code>main</code> 或 <code>main@origin</code>。
+                  </p>
+                </div>
+              </div>
+            </article>
+
+            <article class="step-card" id="step-3">
+              <div class="step-head">
+                <div class="step-num">3</div>
+                <div>
+                  <div class="step-kicker">隔离</div>
+                  <div class="step-title">给 agent 新建独立 workspace</div>
+                </div>
+                <button class="done-toggle" data-step="3">标记完成</button>
+              </div>
+              <div class="step-body">
+                <div class="shell-wrap">
+                  <button class="copy" data-copy>复制</button>
+                  <pre class="shell"><code>jj workspace add ../agent-task -r main -m "agent: implement task"
+cd ../agent-task
+jj st</code></pre>
+                </div>
+                <div class="step-grid">
+                  <div class="box">
+                    <div class="box-title">通过标准</div>
+                    <p>
+                      新目录存在，里面有同一份项目文件，<code>jj st</code> 能正常工作。
+                    </p>
+                  </div>
+                  <div class="box">
+                    <div class="box-title">为什么这步重要</div>
+                    <p>
+                      agent 可以在自己的文件系统目录里改代码、跑测试、生成文件，不会打断你当前工作区。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="step-card" id="step-4">
+              <div class="step-head">
+                <div class="step-num">4</div>
+                <div>
+                  <div class="step-kicker">下发任务</div>
+                  <div class="step-title">让 agent 只产出 change，不碰远端</div>
+                </div>
+                <button class="done-toggle" data-step="4">标记完成</button>
+              </div>
+              <div class="step-body">
+                <div class="box">
+                  <div class="box-title">推荐给 agent 的任务边界</div>
+                  <p id="agent-prompt">
+                    在这个 jj workspace 中完成任务。不要创建 bookmark，不要 push。
+                    每个逻辑步骤用 <code>jj describe -m</code> 写清楚。需要开始下一段工作时用
+                    <code>jj new -m</code>。完成后汇报 <code>jj st</code>、<code>jj diff</code>、测试结果。
+                  </p>
+                </div>
+                <div class="shell-wrap">
+                  <button class="copy" data-copy>复制</button>
+                  <pre class="shell"><code>jj describe -m "feat: implement first slice"
+jj new -m "test: cover first slice"
+jj st
+jj diff</code></pre>
+                </div>
+              </div>
+            </article>
+
+            <article class="step-card" id="step-5">
+              <div class="step-head">
+                <div class="step-num">5</div>
+                <div>
+                  <div class="step-kicker">观察</div>
+                  <div class="step-title">回到主 workspace 看 agent 产物</div>
+                </div>
+                <button class="done-toggle" data-step="5">标记完成</button>
+              </div>
+              <div class="step-body">
+                <div class="shell-wrap">
+                  <button class="copy" data-copy>复制</button>
+                  <pre class="shell"><code>cd ../your-main-workspace
+jj workspace list
+jj log -r 'all()'
+jj show &lt;change-id&gt;
+jj diff -r &lt;change-id&gt;</code></pre>
+                </div>
+                <div class="callout good">
+                  <strong>通过标准</strong>
+                  <p>
+                    你能看到 agent workspace 里的 change，并且能按 change review diff。
+                  </p>
+                </div>
+              </div>
+            </article>
+
+            <article class="step-card" id="step-6">
+              <div class="step-head">
+                <div class="step-num">6</div>
+                <div>
+                  <div class="step-kicker">整理</div>
+                  <div class="step-title">agent 写混了就 split</div>
+                </div>
+                <button class="done-toggle" data-step="6">标记完成</button>
+              </div>
+              <div class="step-body">
+                <div class="shell-wrap">
+                  <button class="copy" data-copy>复制</button>
+                  <pre class="shell"><code>jj split -r &lt;mixed-change&gt;
+jj split -r &lt;mixed-change&gt; path/to/file -m "feat: extract focused change"</code></pre>
+                </div>
+                <div class="box">
+                  <div class="box-title">什么时候用</div>
+                  <p>
+                    一个 change 同时包含重构、功能、测试、格式化时，用 <code>jj split</code> 拆开。
+                    这替代了 Git 里事前精细 <code>git add -p</code> 的压力。
+                  </p>
+                </div>
+              </div>
+            </article>
+
+            <article class="step-card" id="step-7">
+              <div class="step-head">
+                <div class="step-num">7</div>
+                <div>
+                  <div class="step-kicker">压实</div>
+                  <div class="step-title">agent 修补太碎就 squash</div>
+                </div>
+                <button class="done-toggle" data-step="7">标记完成</button>
+              </div>
+              <div class="step-body">
+                <div class="shell-wrap">
+                  <button class="copy" data-copy>复制</button>
+                  <pre class="shell"><code>jj squash
+jj squash -i
+jj squash --from &lt;fixup-change&gt; --into &lt;target-change&gt;</code></pre>
+                </div>
+                <div class="box">
+                  <div class="box-title">通过标准</div>
+                  <p>
+                    最终 stack 每个 change 都有单一意图：一个功能、一个重构、一个测试补充。
+                  </p>
+                </div>
+              </div>
+            </article>
+
+            <article class="step-card" id="step-8">
+              <div class="step-head">
+                <div class="step-num">8</div>
+                <div>
+                  <div class="step-kicker">对齐主线</div>
+                  <div class="step-title">执行 jj 版 rebase main</div>
+                </div>
+                <button class="done-toggle" data-step="8">标记完成</button>
+              </div>
+              <div class="step-body">
+                <div class="shell-wrap">
+                  <button class="copy" data-copy>复制</button>
+                  <pre class="shell"><code>jj git fetch
+jj rebase -b @ -d main@origin
+jj log</code></pre>
+                </div>
+                <div class="step-grid">
+                  <div class="box">
+                    <div class="box-title">选择参数</div>
+                    <ul>
+                      <li><code>-b @</code>：日常最常用，搬当前 stack。</li>
+                      <li><code>-r @</code>：只搬当前一个 change。</li>
+                      <li><code>-s &lt;root&gt;</code>：从某个根 change 连同后代一起搬。</li>
+                    </ul>
+                  </div>
+                  <div class="box">
+                    <div class="box-title">Git 对应动作</div>
+                    <p>
+                      这一步对应 <code>git rebase origin/main</code>。
+                      jj 保留了你“主线干净”的习惯，但本地不依赖 branch。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="step-card" id="step-9">
+              <div class="step-head">
+                <div class="step-num">9</div>
+                <div>
+                  <div class="step-kicker">发布</div>
+                  <div class="step-title">最后才创建 bookmark 并 push</div>
+                </div>
+                <button class="done-toggle" data-step="9">标记完成</button>
+              </div>
+              <div class="step-body">
+                <div class="shell-wrap">
+                  <button class="copy" data-copy>复制</button>
+                  <pre class="shell"><code>jj bookmark set feature/agent-task -r @
+jj git push --bookmark feature/agent-task --dry-run
+jj git push --bookmark feature/agent-task</code></pre>
+                </div>
+                <div class="callout">
+                  <strong>关键习惯</strong>
+                  <p>
+                    bookmark 是发布边界，不是开发边界。你 review、split、squash、rebase 完之后再挂它。
+                  </p>
+                </div>
+              </div>
+            </article>
+
+            <article class="step-card" id="step-10">
+              <div class="step-head">
+                <div class="step-num">10</div>
+                <div>
+                  <div class="step-kicker">收尾</div>
+                  <div class="step-title">清理 agent workspace</div>
+                </div>
+                <button class="done-toggle" data-step="10">标记完成</button>
+              </div>
+              <div class="step-body">
+                <div class="shell-wrap">
+                  <button class="copy" data-copy>复制</button>
+                  <pre class="shell"><code>jj workspace list
+jj workspace forget agent-task
+rm -rf ../agent-task</code></pre>
+                </div>
+                <div class="callout warning">
+                  <strong>谨慎删除目录</strong>
+                  <p>
+                    <code>workspace forget</code> 只是让 jj 忘记这个 workspace。
+                    <code>rm -rf</code> 会删除物理目录，确认里面没有要保留的临时文件再执行。
+                  </p>
+                </div>
+              </div>
+            </article>
+
+            <article class="step-card" id="step-11">
+              <div class="step-head">
+                <div class="step-num">11</div>
+                <div>
+                  <div class="step-kicker">部署</div>
+                  <div class="step-title">用 GitHub Actions 直接部署到 Vercel</div>
+                </div>
+                <button class="done-toggle" data-step="11">标记完成</button>
+              </div>
+              <div class="step-body">
+                <div class="shell-wrap">
+                  <button class="copy" data-copy>复制</button>
+                  <pre class="shell"><code>jj bookmark set main -r @
+jj git push --bookmark main</code></pre>
+                </div>
+                <div class="step-grid">
+                  <div class="box">
+                    <div class="box-title">你需要在 GitHub 配好 3 个 secrets</div>
+                    <ul>
+                      <li><code>VERCEL_TOKEN</code>：Vercel 账号 token。</li>
+                      <li><code>VERCEL_ORG_ID</code>：Vercel team/user id。</li>
+                      <li><code>VERCEL_PROJECT_ID</code>：Vercel project id。</li>
+                    </ul>
+                  </div>
+                  <div class="box">
+                    <div class="box-title">通过标准</div>
+                    <p>
+                      push 到 <code>main</code> 后，GitHub Actions 出现
+                      <code>Deploy to Vercel</code> workflow，并完成 production deploy。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="deploy">
+          <h2>3. GitHub Actions 直接部署</h2>
+          <p class="section-lead">
+            本仓库已经按纯静态页面准备好：入口是 <code>index.html</code>，
+            <code>vercel.json</code> 只保留静态站点配置，workflow 在
+            <code>.github/workflows/deploy-vercel.yml</code>。
+          </p>
+          <div class="grid">
+            <div class="card">
+              <h3>第一次绑定 Vercel 项目</h3>
+              <div class="shell-wrap">
+                <button class="copy" data-copy>复制</button>
+                <pre class="shell"><code>npm install -g vercel
+vercel link
+cat .vercel/project.json</code></pre>
+              </div>
+              <p>
+                把 <code>orgId</code> 和 <code>projectId</code> 分别填到 GitHub Secrets。
+                <code>.vercel/</code> 不需要提交。
+              </p>
+            </div>
+            <div class="card">
+              <h3>日常发布</h3>
+              <div class="shell-wrap">
+                <button class="copy" data-copy>复制</button>
+                <pre class="shell"><code>jj st
+jj describe -m "docs: update jj tutorial"
+jj bookmark set main -r @
+jj git push --bookmark main</code></pre>
+              </div>
+              <p>
+                之后每次推到 <code>main</code>，GitHub Actions 会执行
+                <code>vercel pull</code>、<code>vercel build --prod</code>、
+                <code>vercel deploy --prebuilt --prod</code>。
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="pitfalls">
+          <h2>4. 常见坑：Git 老手要刻意避免</h2>
+          <div class="triple">
+            <div class="mini-card">
+              <span class="badge">坑 1</span>
+              <h3>一开始就建 bookmark</h3>
+              <p>先让 agent 产出 change stack。bookmark 只在 push/PR 前出现。</p>
+            </div>
+            <div class="mini-card">
+              <span class="badge">坑 2</span>
+              <h3>寻找 <code>jj add</code></h3>
+              <p>没有暂存区。先写，后拆。整理历史是 jj 的强项。</p>
+            </div>
+            <div class="mini-card">
+              <span class="badge">坑 3</span>
+              <h3>用 Git 命令改状态</h3>
+              <p>可以用 <code>git status</code> 看；尽量不要用 <code>git reset</code>、<code>git checkout</code> 改。</p>
+            </div>
+          </div>
+          <div class="callout warning" style="margin-top: 16px">
+            <strong>出错时的第一反应</strong>
+            <p>
+              不要急着 reset。先 <code>jj op log</code>，再 <code>jj undo</code> 或
+              <code>jj op restore &lt;operation-id&gt;</code>。
+            </p>
+          </div>
+        </section>
+
+        <section id="cheatsheet">
+          <h2>5. 命令速查</h2>
+          <div class="grid">
+            <div class="card">
+              <h3>看状态</h3>
+              <div class="shell-wrap">
+                <button class="copy" data-copy>复制</button>
+                <pre class="shell"><code>jj st
+jj log -r 'all()'
+jj show @
+jj diff</code></pre>
+              </div>
+            </div>
+            <div class="card">
+              <h3>开 change</h3>
+              <div class="shell-wrap">
+                <button class="copy" data-copy>复制</button>
+                <pre class="shell"><code>jj new -m "feat: next task"
+jj describe -m "feat: current task"
+jj edit &lt;change-id&gt;</code></pre>
+              </div>
+            </div>
+            <div class="card">
+              <h3>agent workspace</h3>
+              <div class="shell-wrap">
+                <button class="copy" data-copy>复制</button>
+                <pre class="shell"><code>jj workspace add ../agent-task -r main -m "agent: task"
+jj workspace list
+jj workspace forget agent-task</code></pre>
+              </div>
+            </div>
+            <div class="card">
+              <h3>整理历史</h3>
+              <div class="shell-wrap">
+                <button class="copy" data-copy>复制</button>
+                <pre class="shell"><code>jj split
+jj split -r &lt;change-id&gt;
+jj squash -i
+jj squash --from &lt;src&gt; --into &lt;dst&gt;</code></pre>
+              </div>
+            </div>
+            <div class="card">
+              <h3>对齐主线</h3>
+              <div class="shell-wrap">
+                <button class="copy" data-copy>复制</button>
+                <pre class="shell"><code>jj git fetch
+jj rebase -b @ -d main@origin
+jj rebase -s &lt;stack-root&gt; -d main@origin</code></pre>
+              </div>
+            </div>
+            <div class="card">
+              <h3>推远端</h3>
+              <div class="shell-wrap">
+                <button class="copy" data-copy>复制</button>
+                <pre class="shell"><code>jj bookmark set feature/name -r @
+jj git push --bookmark feature/name --dry-run
+jj git push --bookmark feature/name</code></pre>
+              </div>
+            </div>
+          </div>
+        </section>
+      </article>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        静态单页教程，适合直接部署到 Vercel。页面进度保存在浏览器本地。
+      </div>
+    </footer>
+
+    <script>
+      const storageKey = "jj-baby-steps-progress";
+      const buttons = Array.from(document.querySelectorAll(".done-toggle"));
+      const progressText = document.querySelector("#progressText");
+      const progressBar = document.querySelector("#progressBar");
+
+      function readDone() {
+        try {
+          return new Set(JSON.parse(localStorage.getItem(storageKey) || "[]"));
+        } catch {
+          return new Set();
+        }
+      }
+
+      function writeDone(done) {
+        localStorage.setItem(storageKey, JSON.stringify(Array.from(done)));
+      }
+
+      function renderProgress() {
+        const done = readDone();
+        buttons.forEach((button) => {
+          const isDone = done.has(button.dataset.step);
+          button.dataset.done = String(isDone);
+          button.textContent = isDone ? "已完成" : "标记完成";
+        });
+        const count = done.size;
+        progressText.textContent = `${count} / ${buttons.length}`;
+        progressBar.style.width = `${(count / buttons.length) * 100}%`;
+      }
+
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const done = readDone();
+          const step = button.dataset.step;
+          if (done.has(step)) {
+            done.delete(step);
+          } else {
+            done.add(step);
+          }
+          writeDone(done);
+          renderProgress();
+        });
+      });
+
+      document.querySelectorAll("[data-copy]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const code = button.parentElement.querySelector("code").innerText;
+          await navigator.clipboard.writeText(code);
+          const original = button.textContent;
+          button.textContent = "已复制";
+          window.setTimeout(() => {
+            button.textContent = original;
+          }, 1000);
+        });
+      });
+
+      renderProgress();
+    </script>
+  </body>
+</html>
