@@ -16,8 +16,8 @@
         --paper: #f7f9fc;
         --panel: #ffffff;
         --line: #d8e0ea;
-        --code: #111827;
-        --code-text: #edf3ff;
+        --code: #07111f;
+        --code-text: #f8fbff;
         --teal: #0f766e;
         --teal-soft: #e1f3f0;
         --blue: #2563eb;
@@ -64,6 +64,7 @@
       code {
         border-radius: 5px;
         background: #eef2f7;
+        color: #102033;
         padding: 2px 5px;
       }
 
@@ -456,11 +457,22 @@
         margin: 0;
         overflow-x: auto;
         border-radius: 8px;
+        border: 1px solid #26364f;
         background: var(--code);
         color: var(--code-text);
-        padding: 16px;
-        font-size: 14px;
+        padding: 18px 94px 18px 18px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        font-size: 15px;
         line-height: 1.55;
+      }
+
+      .shell code {
+        display: block;
+        border-radius: 0;
+        background: transparent;
+        color: inherit;
+        padding: 0;
+        white-space: pre;
       }
 
       .copy {
@@ -468,10 +480,12 @@
         top: 8px;
         right: 8px;
         min-height: 30px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.36);
         border-radius: 7px;
-        background: rgba(255, 255, 255, 0.08);
-        color: #ffffff;
+        background: #ffffff;
+        color: #111827;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+        padding: 4px 10px;
         cursor: pointer;
         font-size: 12px;
         font-weight: 800;
