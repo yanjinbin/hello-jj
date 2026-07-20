@@ -513,6 +513,62 @@
         margin-bottom: 5px;
       }
 
+      .local-context {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: end;
+        margin-bottom: 22px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 16px;
+      }
+
+      .context-fields {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .context-field label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .context-field input {
+        width: 100%;
+        min-height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fbfcfe;
+        color: var(--ink);
+        padding: 8px 10px;
+        font: inherit;
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      }
+
+      .context-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .context-button {
+        min-height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #ffffff;
+        color: var(--ink);
+        cursor: pointer;
+        padding: 8px 12px;
+        font-weight: 850;
+        white-space: nowrap;
+      }
+
       .compare {
         width: 100%;
         border-collapse: collapse;
@@ -559,7 +615,9 @@
         .layout,
         .grid,
         .triple,
-        .step-grid {
+        .step-grid,
+        .local-context,
+        .context-fields {
           grid-template-columns: 1fr;
         }
 
@@ -589,6 +647,11 @@
         }
 
         .done-toggle {
+          width: 100%;
+        }
+
+        .context-actions,
+        .context-button {
           width: 100%;
         }
 
@@ -721,8 +784,8 @@
                 <td>一个 agent 一个目录，互不抢工作区</td>
               </tr>
               <tr>
-                <td><code>git rebase origin/main</code></td>
-                <td><code>jj rebase -b @ -d main@origin</code></td>
+                <td><code data-context-template>git rebase origin/{{defaultBranch}}</code></td>
+                <td><code data-context-template>jj rebase -b @ -d {{defaultBranch}}@origin</code></td>
                 <td>review 完，把当前 stack 整体搬到最新主线后面</td>
               </tr>
               <tr>
@@ -738,8 +801,28 @@
           <h2>2. Baby steps：照着做，过一关勾一关</h2>
           <p class="section-lead">
             这套流程可以直接用于真实项目。主线名如果是 <code>master</code>，把命令里的
-            <code>main</code> 替换成 <code>master</code>。
+            <code data-context-template>{{defaultBranch}}</code> 替换成 <code>master</code>。
           </p>
+
+          <div class="local-context" aria-label="本地仓库上下文">
+            <div class="context-fields">
+              <div class="context-field">
+                <label for="defaultBranch">默认分支</label>
+                <input id="defaultBranch" data-context-field="defaultBranch" autocomplete="off" />
+              </div>
+              <div class="context-field">
+                <label for="changeId">change id</label>
+                <input id="changeId" data-context-field="changeId" autocomplete="off" />
+              </div>
+              <div class="context-field">
+                <label for="commitId">commit id</label>
+                <input id="commitId" data-context-field="commitId" autocomplete="off" />
+              </div>
+            </div>
+            <div class="context-actions">
+              <button class="context-button" type="button" id="resetContext">恢复本地值</button>
+            </div>
+          </div>
 
           <div class="step-list">
             <article class="step-card" id="step-1">
@@ -796,7 +879,8 @@ jj log -r 'all()' --limit 12</code></pre>
                   <strong>Git 对应动作</strong>
                   <p>
                     这一步对应 <code>git fetch origin</code>。你后面 rebase 的目标通常是
-                    <code>main</code> 或 <code>main@origin</code>。
+                    <code data-context-template>{{defaultBranch}}</code> 或
+                    <code data-context-template>{{defaultBranch}}@origin</code>。
                   </p>
                 </div>
               </div>
@@ -814,7 +898,7 @@ jj log -r 'all()' --limit 12</code></pre>
               <div class="step-body">
                 <div class="shell-wrap">
                   <button class="copy" data-copy>复制</button>
-                  <pre class="shell"><code>jj workspace add ../agent-task -r main -m "agent: implement task"
+                  <pre class="shell"><code data-context-template>jj workspace add ../agent-task -r {{defaultBranch}} -m "agent: implement task"
 cd ../agent-task
 jj st</code></pre>
                 </div>
@@ -875,11 +959,12 @@ jj diff</code></pre>
               <div class="step-body">
                 <div class="shell-wrap">
                   <button class="copy" data-copy>复制</button>
-                  <pre class="shell"><code>cd ../your-main-workspace
+                  <pre class="shell"><code data-context-template>cd ../your-main-workspace
 jj workspace list
 jj log -r 'all()'
-jj show &lt;change-id&gt;
-jj diff -r &lt;change-id&gt;</code></pre>
+jj show {{changeId}}
+jj diff -r {{changeId}}
+jj show {{commitId}}</code></pre>
                 </div>
                 <div class="callout good">
                   <strong>通过标准</strong>
@@ -902,8 +987,8 @@ jj diff -r &lt;change-id&gt;</code></pre>
               <div class="step-body">
                 <div class="shell-wrap">
                   <button class="copy" data-copy>复制</button>
-                  <pre class="shell"><code>jj split -r &lt;mixed-change&gt;
-jj split -r &lt;mixed-change&gt; path/to/file -m "feat: extract focused change"</code></pre>
+                  <pre class="shell"><code data-context-template>jj split -r {{changeId}}
+jj split -r {{changeId}} path/to/file -m "feat: extract focused change"</code></pre>
                 </div>
                 <div class="box">
                   <div class="box-title">什么时候用</div>
@@ -952,8 +1037,8 @@ jj squash --from &lt;fixup-change&gt; --into &lt;target-change&gt;</code></pre>
               <div class="step-body">
                 <div class="shell-wrap">
                   <button class="copy" data-copy>复制</button>
-                  <pre class="shell"><code>jj git fetch
-jj rebase -b @ -d main@origin
+                  <pre class="shell"><code data-context-template>jj git fetch
+jj rebase -b @ -d {{defaultBranch}}@origin
 jj log</code></pre>
                 </div>
                 <div class="step-grid">
@@ -968,7 +1053,7 @@ jj log</code></pre>
                   <div class="box">
                     <div class="box-title">Git 对应动作</div>
                     <p>
-                      这一步对应 <code>git rebase origin/main</code>。
+                      这一步对应 <code data-context-template>git rebase origin/{{defaultBranch}}</code>。
                       jj 保留了你“主线干净”的习惯，但本地不依赖 branch。
                     </p>
                   </div>
@@ -1039,8 +1124,8 @@ rm -rf ../agent-task</code></pre>
               <div class="step-body">
                 <div class="shell-wrap">
                   <button class="copy" data-copy>复制</button>
-                  <pre class="shell"><code>jj bookmark set main -r @
-jj git push --bookmark main</code></pre>
+                  <pre class="shell"><code data-context-template>jj bookmark set {{defaultBranch}} -r @
+jj git push --bookmark {{defaultBranch}}</code></pre>
                 </div>
                 <div class="step-grid">
                   <div class="box">
@@ -1054,7 +1139,7 @@ jj git push --bookmark main</code></pre>
                   <div class="box">
                     <div class="box-title">通过标准</div>
                     <p>
-                      push 到 <code>main</code> 后，GitHub Actions 出现
+                      push 到 <code data-context-template>{{defaultBranch}}</code> 后，GitHub Actions 出现
                       <code>Deploy to Vercel</code> workflow，并完成 production deploy。
                     </p>
                   </div>
@@ -1089,13 +1174,13 @@ cat .vercel/project.json</code></pre>
               <h3>日常发布</h3>
               <div class="shell-wrap">
                 <button class="copy" data-copy>复制</button>
-                <pre class="shell"><code>jj st
+                <pre class="shell"><code data-context-template>jj st
 jj describe -m "docs: update jj tutorial"
-jj bookmark set main -r @
-jj git push --bookmark main</code></pre>
+jj bookmark set {{defaultBranch}} -r @
+jj git push --bookmark {{defaultBranch}}</code></pre>
               </div>
               <p>
-                之后每次推到 <code>main</code>，GitHub Actions 会执行
+                之后每次推到 <code data-context-template>{{defaultBranch}}</code>，GitHub Actions 会执行
                 <code>vercel pull</code>、<code>vercel build --prod</code>、
                 <code>vercel deploy --prebuilt --prod</code>。
               </p>
@@ -1148,16 +1233,16 @@ jj diff</code></pre>
               <h3>开 change</h3>
               <div class="shell-wrap">
                 <button class="copy" data-copy>复制</button>
-                <pre class="shell"><code>jj new -m "feat: next task"
+                <pre class="shell"><code data-context-template>jj new -m "feat: next task"
 jj describe -m "feat: current task"
-jj edit &lt;change-id&gt;</code></pre>
+jj edit {{changeId}}</code></pre>
               </div>
             </div>
             <div class="card">
               <h3>agent workspace</h3>
               <div class="shell-wrap">
                 <button class="copy" data-copy>复制</button>
-                <pre class="shell"><code>jj workspace add ../agent-task -r main -m "agent: task"
+                <pre class="shell"><code data-context-template>jj workspace add ../agent-task -r {{defaultBranch}} -m "agent: task"
 jj workspace list
 jj workspace forget agent-task</code></pre>
               </div>
@@ -1166,8 +1251,8 @@ jj workspace forget agent-task</code></pre>
               <h3>整理历史</h3>
               <div class="shell-wrap">
                 <button class="copy" data-copy>复制</button>
-                <pre class="shell"><code>jj split
-jj split -r &lt;change-id&gt;
+                <pre class="shell"><code data-context-template>jj split
+jj split -r {{changeId}}
 jj squash -i
 jj squash --from &lt;src&gt; --into &lt;dst&gt;</code></pre>
               </div>
@@ -1176,9 +1261,9 @@ jj squash --from &lt;src&gt; --into &lt;dst&gt;</code></pre>
               <h3>对齐主线</h3>
               <div class="shell-wrap">
                 <button class="copy" data-copy>复制</button>
-                <pre class="shell"><code>jj git fetch
-jj rebase -b @ -d main@origin
-jj rebase -s &lt;stack-root&gt; -d main@origin</code></pre>
+                <pre class="shell"><code data-context-template>jj git fetch
+jj rebase -b @ -d {{defaultBranch}}@origin
+jj rebase -s {{changeId}} -d {{defaultBranch}}@origin</code></pre>
               </div>
             </div>
             <div class="card">
@@ -1203,9 +1288,47 @@ jj git push --bookmark feature/name</code></pre>
 
     <script>
       const storageKey = "jj-baby-steps-progress";
+      const detectedLocalContext = {
+        defaultBranch: "main",
+        changeId: "kttyvzwsqstl",
+        commitId: "2a405250b195",
+      };
+      let currentContext = { ...detectedLocalContext };
       const buttons = Array.from(document.querySelectorAll(".done-toggle"));
       const progressText = document.querySelector("#progressText");
       const progressBar = document.querySelector("#progressBar");
+      const contextFields = Array.from(document.querySelectorAll("[data-context-field]"));
+      const templateNodes = Array.from(document.querySelectorAll("[data-context-template]"));
+      const resetContextButton = document.querySelector("#resetContext");
+
+      templateNodes.forEach((node) => {
+        node.dataset.templateSource = node.textContent;
+      });
+
+      function normalizeContext(nextContext) {
+        return {
+          defaultBranch: (nextContext.defaultBranch || "main").trim() || "main",
+          changeId: (nextContext.changeId || "<change-id>").trim() || "<change-id>",
+          commitId: (nextContext.commitId || "<commit-id>").trim() || "<commit-id>",
+        };
+      }
+
+      function renderTemplate(template, context) {
+        return template
+          .replaceAll("{{defaultBranch}}", context.defaultBranch)
+          .replaceAll("{{changeId}}", context.changeId)
+          .replaceAll("{{commitId}}", context.commitId);
+      }
+
+      function renderContext(nextContext = currentContext) {
+        currentContext = normalizeContext(nextContext);
+        contextFields.forEach((field) => {
+          field.value = currentContext[field.dataset.contextField] || "";
+        });
+        templateNodes.forEach((node) => {
+          node.textContent = renderTemplate(node.dataset.templateSource, currentContext);
+        });
+      }
 
       function readDone() {
         try {
@@ -1245,6 +1368,19 @@ jj git push --bookmark feature/name</code></pre>
         });
       });
 
+      contextFields.forEach((field) => {
+        field.addEventListener("input", () => {
+          renderContext({
+            ...currentContext,
+            [field.dataset.contextField]: field.value,
+          });
+        });
+      });
+
+      resetContextButton.addEventListener("click", () => {
+        renderContext(detectedLocalContext);
+      });
+
       document.querySelectorAll("[data-copy]").forEach((button) => {
         button.addEventListener("click", async () => {
           const code = button.parentElement.querySelector("code").innerText;
@@ -1257,6 +1393,7 @@ jj git push --bookmark feature/name</code></pre>
         });
       });
 
+      renderContext();
       renderProgress();
     </script>
   </body>
