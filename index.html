@@ -665,6 +665,7 @@
         <a href="#mindset">为什么换 jj</a>
         <a href="#model">change 模型</a>
         <a href="#context">本地变量</a>
+        <a href="#ohmyzsh">zsh alias</a>
         <a href="#playbook">实战流程</a>
         <a href="#scenarios">agent 场景</a>
         <a href="#agent-prompt">给 agent 的指令</a>
@@ -781,8 +782,106 @@ jj show {{commitId}}</code></pre>
           </div>
         </section>
 
+        <section id="ohmyzsh">
+          <h2>4. Oh My Zsh：启用 jj 插件和 alias</h2>
+          <p class="section-lead">
+            如果你的 shell 用 Oh My Zsh，可以直接启用内置 <code>jj</code> 插件。
+            它会生成补全、提供 prompt helper，并注册一组按子命令缩短的 alias。
+          </p>
+
+          <div class="grid">
+            <div class="card">
+              <span class="badge">启用插件</span>
+              <h3>把 jj 加进 plugins</h3>
+              <p>
+                修改 <code>~/.zshrc</code> 后重开终端，或执行 <code>source ~/.zshrc</code>。
+                插件本身不会替你安装 jj，先确保 <code>jj --version</code> 可用。
+              </p>
+              <div class="shell-wrap" style="margin-top: 14px">
+                <button class="copy" data-copy>复制</button>
+                <pre class="shell"><code>plugins=(git jj)
+
+source ~/.zshrc
+jj --version</code></pre>
+              </div>
+            </div>
+            <div class="card">
+              <span class="badge">prompt 性能</span>
+              <h3>大仓库觉得慢时再加</h3>
+              <p>
+                这个设置只影响 prompt 里插件调用 jj 的方式，会让 prompt 读取时跳过
+                working copy 扫描。代价是提示符可能要等你手动运行一次 jj 命令后才更新。
+              </p>
+              <div class="shell-wrap" style="margin-top: 14px">
+                <button class="copy" data-copy>复制</button>
+                <pre class="shell"><code>zstyle :omz:plugins:jj ignore-working-copy yes</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <table class="compare" style="margin-top: 18px">
+            <thead>
+              <tr>
+                <th>场景</th>
+                <th>alias</th>
+                <th>完整命令</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>状态和历史</td>
+                <td><code>jjst</code> / <code>jjl</code> / <code>jjla</code></td>
+                <td><code>jj status</code> / <code>jj log</code> / <code>jj log -r "all()"</code></td>
+              </tr>
+              <tr>
+                <td>查看和描述</td>
+                <td><code>jjd</code> / <code>jjds</code> / <code>jjdmsg</code></td>
+                <td><code>jj diff</code> / <code>jj desc</code> / <code>jj desc --message</code></td>
+              </tr>
+              <tr>
+                <td>创建和切换 change</td>
+                <td><code>jjn</code> / <code>jjnt</code> / <code>jje</code> / <code>jjc</code> / <code>jjcmsg</code></td>
+                <td><code>jj new</code> / <code>jj new "trunk()"</code> / <code>jj edit</code> / <code>jj commit</code> / <code>jj commit --message</code></td>
+              </tr>
+              <tr>
+                <td>整理历史</td>
+                <td><code>jjsp</code> / <code>jjsq</code> / <code>jjrb</code> / <code>jjrbm</code> / <code>jjrs</code> / <code>jja</code></td>
+                <td><code>jj split</code> / <code>jj squash</code> / <code>jj rebase</code> / <code>jj rebase -d "trunk()"</code> / <code>jj restore</code> / <code>jj abandon</code></td>
+              </tr>
+              <tr>
+                <td>bookmark</td>
+                <td><code>jjb</code> / <code>jjbl</code> / <code>jjbc</code> / <code>jjbs</code> / <code>jjbm</code> / <code>jjbd</code></td>
+                <td><code>jj bookmark</code> / <code>jj bookmark list</code> / <code>jj bookmark create</code> / <code>jj bookmark set</code> / <code>jj bookmark move</code> / <code>jj bookmark delete</code></td>
+              </tr>
+              <tr>
+                <td>更多 bookmark</td>
+                <td><code>jjba</code> / <code>jjbf</code> / <code>jjbr</code> / <code>jjbt</code> / <code>jjbu</code></td>
+                <td><code>jj bookmark advance</code> / <code>jj bookmark forget</code> / <code>jj bookmark rename</code> / <code>jj bookmark track</code> / <code>jj bookmark untrack</code></td>
+              </tr>
+              <tr>
+                <td>Git 互操作</td>
+                <td><code>jjgf</code> / <code>jjgfa</code> / <code>jjgp</code> / <code>jjgpa</code> / <code>jjgpd</code> / <code>jjgpt</code> / <code>jjgcl</code></td>
+                <td><code>jj git fetch</code> / <code>jj git fetch --all-remotes</code> / <code>jj git push</code> / <code>jj git push --all</code> / <code>jj git push --deleted</code> / <code>jj git push --tracked</code> / <code>jj git clone</code></td>
+              </tr>
+              <tr>
+                <td>跳到仓库根目录</td>
+                <td><code>jjrt</code></td>
+                <td><code>cd "$(jj root || echo .)"</code></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="callout" style="margin-top: 16px">
+            <strong>和 jj 自带 alias 分清楚</strong>
+            <p>
+              Oh My Zsh alias 是 shell 缩写，例如 <code>jjst</code>；<code>jj config set --user aliases.l ...</code>
+              是 jj 自己的子命令 alias，例如 <code>jj l</code>。两者可以同时存在。
+            </p>
+          </div>
+        </section>
+
         <section id="playbook">
-          <h2>4. 实战流程：把 agent 产物变成可推送历史</h2>
+          <h2>5. 实战流程：把 agent 产物变成可推送历史</h2>
           <p class="section-lead">
             这不是 jj 命令大全，而是一条可以每天重复的 workflow。每一步都刻意减少
             agent 对 Git 隐性状态的依赖。
@@ -1003,7 +1102,7 @@ jj git push --bookmark feature/agent-task</code></pre>
         </section>
 
         <section id="scenarios">
-          <h2>5. 六个 agent 场景的 jj 解法</h2>
+          <h2>6. 六个 agent 场景的 jj 解法</h2>
           <p class="section-lead">
             下面是参考文章的核心场景，用更偏操作手册的方式压缩成可执行判断。
           </p>
@@ -1042,7 +1141,7 @@ jj git push --bookmark feature/agent-task</code></pre>
         </section>
 
         <section id="agent-prompt">
-          <h2>6. 可以直接给 agent 的指令</h2>
+          <h2>7. 可以直接给 agent 的指令</h2>
           <p class="section-lead">
             把版本控制要求写得短而明确：让 agent 用 jj 工作，但不要让它提前发布。
           </p>
@@ -1059,7 +1158,7 @@ jj git push --bookmark feature/agent-task</code></pre>
         </section>
 
         <section id="cheatsheet">
-          <h2>7. 最小命令速查</h2>
+          <h2>8. 最小命令速查</h2>
           <table class="compare">
             <thead>
               <tr>
@@ -1123,6 +1222,7 @@ jj git push --bookmark feature/agent-task</code></pre>
     <footer class="footer">
       <div class="footer-inner">
         参考：<a href="https://onevcat.com/2026/03/jj-for-agent-era/">OneV's Den《用好你的 jj - 重新思考 Agent 时代的版本控制》</a>。
+        Oh My Zsh alias 对照：<a href="https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/jj">ohmyzsh/plugins/jj</a>。
         页面进度保存在浏览器本地。
       </div>
     </footer>
