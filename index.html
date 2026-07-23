@@ -665,6 +665,7 @@
         <a href="#mindset">为什么换 jj</a>
         <a href="#model">change 模型</a>
         <a href="#context">本地变量</a>
+        <a href="#worktree">Git worktree</a>
         <a href="#ohmyzsh">zsh alias</a>
         <a href="#playbook">实战流程</a>
         <a href="#scenarios">agent 场景</a>
@@ -782,16 +783,113 @@ jj show {{commitId}}</code></pre>
           </div>
         </section>
 
-        <section id="ohmyzsh">
-          <h2>4. Oh My Zsh：启用 jj 插件和 alias</h2>
+        <section id="worktree">
+          <h2>4. Git worktree：目录级并行速查</h2>
           <p class="section-lead">
-            如果你的 shell 用 Oh My Zsh，可以直接启用内置 <code>jj</code> 插件。
-            它会生成补全、提供 prompt helper，并注册一组按子命令缩短的 alias。
+            Git worktree 是 Git 层面的多目录工作方式：多个目录共享同一个 Git 仓库对象，
+            但每个目录有独立工作区和 HEAD。它适合并行任务，但不会自动登记成 jj workspace。
+          </p>
+
+          <table class="compare">
+            <thead>
+              <tr>
+                <th>要做什么</th>
+                <th>Git worktree 命令</th>
+                <th>注意点</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>查看所有 worktree</td>
+                <td><code>git worktree list</code></td>
+                <td>能看到主工作区和所有额外目录。</td>
+              </tr>
+              <tr>
+                <td>新建任务目录</td>
+                <td><code>git worktree add ../repo-task -b feature/task main</code></td>
+                <td>从 <code>main</code> 创建新 branch 和新目录。</td>
+              </tr>
+              <tr>
+                <td>打开已有 branch</td>
+                <td><code>git worktree add ../repo-task feature/task</code></td>
+                <td>同一个 branch 不能同时被两个普通 worktree checkout。</td>
+              </tr>
+              <tr>
+                <td>只检查某个 commit</td>
+                <td><code>git worktree add --detach ../repo-readonly &lt;commit&gt;</code></td>
+                <td>适合临时读代码，不适合作为长期开发目录。</td>
+              </tr>
+              <tr>
+                <td>查看别的目录状态</td>
+                <td><code>git -C ../repo-task status -sb</code></td>
+                <td>不用切换 shell 当前目录。</td>
+              </tr>
+              <tr>
+                <td>删除 worktree</td>
+                <td><code>git worktree remove ../repo-task</code></td>
+                <td>目录有未提交改动时会拒绝，确认后才用 <code>--force</code>。</td>
+              </tr>
+              <tr>
+                <td>清理失效元数据</td>
+                <td><code>git worktree prune</code></td>
+                <td>手动删过目录后，用它清理主仓库里的记录。</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="grid" style="margin-top: 18px">
+            <div class="card">
+              <span class="badge">Git</span>
+              <h3>worktree 绑定 branch</h3>
+              <p>
+                典型模型是一个任务目录对应一个 Git branch。目录里的 <code>.git</code>
+                往往只是指针文件，真正元数据在主仓库 <code>.git/worktrees/</code> 下。
+              </p>
+            </div>
+            <div class="card">
+              <span class="badge">jj</span>
+              <h3>workspace 绑定 change</h3>
+              <p>
+                要让新目录进入 jj 管理，优先从 colocated 主仓库执行
+                <code>jj workspace add ../dir -r main -m "msg"</code>，完成后再挂 bookmark 推远端。
+              </p>
+            </div>
+          </div>
+
+          <div class="callout warning" style="margin-top: 16px">
+            <strong>不要手动复制 .jj</strong>
+            <p>
+              用 <code>git worktree add</code> 建出来的目录不等于 jj workspace。
+              如果那里执行 <code>jj root</code> 报没有 jj repo，原因通常就是 jj 没登记这个目录。
+            </p>
+          </div>
+        </section>
+
+        <section id="ohmyzsh">
+          <h2>5. jj alias：自带配置和 zsh 插件</h2>
+          <p class="section-lead">
+            alias 分两层：<code>jj config</code> 里的 alias 是 jj 自己的子命令缩写；
+            Oh My Zsh 插件里的 alias 是 shell 缩写。两者可以同时用，但排查时要分清来源。
           </p>
 
           <div class="grid">
             <div class="card">
-              <span class="badge">启用插件</span>
+              <span class="badge">jj 自带 alias</span>
+              <h3>跨 shell 生效</h3>
+              <p>
+                适合把常用 revset 固化成短命令，例如 <code>jj l</code> 看完整图，
+                <code>jj ll</code> 看完整图加 patch。
+              </p>
+              <div class="shell-wrap" style="margin-top: 14px">
+                <button class="copy" data-copy>复制</button>
+                <pre class="shell"><code>jj config set --user aliases.l '["log", "-r", "all()", "--graph"]'
+jj config set --user aliases.ll '["log", "-r", "all()", "--graph", "--patch"]'
+jj config set --user aliases.s '["status"]'
+jj config set --user aliases.d '["diff"]'</code></pre>
+              </div>
+            </div>
+            <div class="card">
+              <span class="badge">Oh My Zsh</span>
               <h3>把 jj 加进 plugins</h3>
               <p>
                 修改 <code>~/.zshrc</code> 后重开终端，或执行 <code>source ~/.zshrc</code>。
@@ -872,16 +970,16 @@ jj --version</code></pre>
           </table>
 
           <div class="callout" style="margin-top: 16px">
-            <strong>和 jj 自带 alias 分清楚</strong>
+            <strong>判断 alias 来自哪里</strong>
             <p>
-              Oh My Zsh alias 是 shell 缩写，例如 <code>jjst</code>；<code>jj config set --user aliases.l ...</code>
-              是 jj 自己的子命令 alias，例如 <code>jj l</code>。两者可以同时存在。
+              <code>jj l</code> 这类命令由 jj 配置解析；<code>jjst</code> 这类命令由 zsh 解析。
+              如果换了 shell 后 <code>jjst</code> 不存在，先检查 Oh My Zsh 插件是否启用。
             </p>
           </div>
         </section>
 
         <section id="playbook">
-          <h2>5. 实战流程：把 agent 产物变成可推送历史</h2>
+          <h2>6. 实战流程：把 agent 产物变成可推送历史</h2>
           <p class="section-lead">
             这不是 jj 命令大全，而是一条可以每天重复的 workflow。每一步都刻意减少
             agent 对 Git 隐性状态的依赖。
@@ -1102,7 +1200,7 @@ jj git push --bookmark feature/agent-task</code></pre>
         </section>
 
         <section id="scenarios">
-          <h2>6. 六个 agent 场景的 jj 解法</h2>
+          <h2>7. 六个 agent 场景的 jj 解法</h2>
           <p class="section-lead">
             下面是参考文章的核心场景，用更偏操作手册的方式压缩成可执行判断。
           </p>
@@ -1141,7 +1239,7 @@ jj git push --bookmark feature/agent-task</code></pre>
         </section>
 
         <section id="agent-prompt">
-          <h2>7. 可以直接给 agent 的指令</h2>
+          <h2>8. 可以直接给 agent 的指令</h2>
           <p class="section-lead">
             把版本控制要求写得短而明确：让 agent 用 jj 工作，但不要让它提前发布。
           </p>
@@ -1158,7 +1256,7 @@ jj git push --bookmark feature/agent-task</code></pre>
         </section>
 
         <section id="cheatsheet">
-          <h2>8. 最小命令速查</h2>
+          <h2>9. 最小命令速查</h2>
           <table class="compare">
             <thead>
               <tr>
@@ -1212,6 +1310,21 @@ jj git push --bookmark feature/agent-task</code></pre>
                 <td>发布成 Git branch</td>
                 <td><code>jj bookmark set feature/name -r @</code> 后 <code>jj git push</code></td>
                 <td>最后才给远端协作命名</td>
+              </tr>
+              <tr>
+                <td>Git 多目录并行</td>
+                <td><code>git worktree add ../repo-task -b feature/task main</code></td>
+                <td>Git worktree 不会自动生成 jj workspace</td>
+              </tr>
+              <tr>
+                <td>jj 多目录并行</td>
+                <td><code>jj workspace add ../repo-task -r main -m "feat: task"</code></td>
+                <td>用 jj 登记 workspace，再按 change 工作</td>
+              </tr>
+              <tr>
+                <td>启用 jj alias</td>
+                <td><code>jj config set --user aliases.l '["log", "-r", "all()", "--graph"]'</code></td>
+                <td><code>jj l</code> 是 jj alias，<code>jjst</code> 是 zsh alias</td>
               </tr>
             </tbody>
           </table>

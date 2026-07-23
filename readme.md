@@ -19,6 +19,8 @@
 - [bookmark 和 Git 互操作](#bookmark-和-git-互操作)
 - [撤销和恢复](#撤销和恢复)
 - [workspace 和 agent 并行工作流](#workspace-和-agent-并行工作流)
+- [Git worktree 速查](#git-worktree-速查)
+- [jj alias 速查](#jj-alias-速查)
 - [完整练习流程](#完整练习流程)
 - [常见坑](#常见坑)
 - [命令速查](#命令速查)
@@ -695,6 +697,108 @@ rm -rf ../hello-jj-rbac
 
 `workspace forget` 只是让当前 repo 忘记那个 workspace；目录删除仍然需要自己处理。
 
+## Git worktree 速查
+
+Git worktree 适合在同一个 Git 仓库上开多个目录并行工作。它共享同一个 Git object database，但每个 worktree 有自己的工作区和 HEAD。
+
+```text
+主仓库 .git/
+  worktrees/task-a/
+
+../repo-task-a/.git 只是一个指针文件
+```
+
+常用命令：
+
+| 命令 | 用途 |
+|---|---|
+| `git worktree list` | 列出所有 worktree |
+| `git worktree add ../repo-task -b feature/task main` | 从 `main` 新建 branch 和 worktree |
+| `git worktree add ../repo-task feature/task` | 用已有 branch 创建 worktree |
+| `git worktree add --detach ../repo-readonly <commit>` | 基于某个 commit 创建只读检查用目录 |
+| `git -C ../repo-task status -sb` | 不切目录也能查看目标 worktree 状态 |
+| `git worktree remove ../repo-task` | 删除干净的 worktree |
+| `git worktree remove --force ../repo-task` | 强制删除有改动或异常状态的 worktree |
+| `git worktree prune` | 清理已经丢失的 worktree 元数据 |
+
+和 jj 的对应关系：
+
+| Git 直觉 | jj 做法 |
+|---|---|
+| `git worktree add ../dir -b feature/x main` | `jj workspace add ../dir -r main -m "feat: x"` |
+| 每个 worktree 通常绑定一个 branch | 每个 workspace 通常绑定一个 working-copy change |
+| 完成后 push branch | 完成后给 change 挂 bookmark，再 `jj git push --bookmark name` |
+| 删除目录后再 `git worktree prune` | `jj workspace forget <name>` 后再删除目录 |
+
+注意：Git worktree 不会自动变成 jj workspace。colocated 仓库里的 `.jj` 属于 jj repo 元数据；如果你只用 `git worktree add` 新建目录，那个目录里通常只有指向主仓库的 `.git` 文件，执行 `jj root` 可能会报 `There is no jj repo in "."`。要让新目录被 jj 管理，优先用 `jj workspace add`。
+
+## jj alias 速查
+
+这里有两种 alias，不要混在一起：
+
+| 类型 | 例子 | 生效位置 |
+|---|---|---|
+| jj 自带命令 alias | `jj l` | jj 配置，跨 shell 生效 |
+| shell alias | `jjst` | Oh My Zsh 插件，只在启用插件的 zsh 里生效 |
+
+### jj 自带 alias
+
+推荐先配几个观察命令：
+
+```bash
+jj config set --user aliases.l '["log", "-r", "all()", "--graph"]'
+jj config set --user aliases.ll '["log", "-r", "all()", "--graph", "--patch"]'
+jj config set --user aliases.s '["status"]'
+jj config set --user aliases.d '["diff"]'
+```
+
+之后可用：
+
+```bash
+jj l
+jj ll
+jj s
+jj d
+```
+
+查看当前配置：
+
+```bash
+jj config list --user | grep '^aliases\.'
+```
+
+### Oh My Zsh jj 插件
+
+启用方式：
+
+```bash
+plugins=(git jj)
+source ~/.zshrc
+```
+
+大仓库如果觉得 prompt 慢，可以加：
+
+```bash
+zstyle :omz:plugins:jj ignore-working-copy yes
+```
+
+常用 alias 对照：
+
+| 场景 | alias | 完整命令 |
+|---|---|---|
+| 状态 | `jjst` | `jj status` |
+| 日志 | `jjl` / `jjla` | `jj log` / `jj log -r "all()"` |
+| diff | `jjd` | `jj diff` |
+| 描述 | `jjds` / `jjdmsg` | `jj desc` / `jj desc --message` |
+| 新 change | `jjn` / `jjnt` | `jj new` / `jj new "trunk()"` |
+| 编辑和提交 | `jje` / `jjc` / `jjcmsg` | `jj edit` / `jj commit` / `jj commit --message` |
+| 拆分和合并 | `jjsp` / `jjsq` | `jj split` / `jj squash` |
+| rebase 和恢复 | `jjrb` / `jjrbm` / `jjrs` / `jja` | `jj rebase` / `jj rebase -d "trunk()"` / `jj restore` / `jj abandon` |
+| bookmark 基础 | `jjb` / `jjbl` / `jjbc` / `jjbs` / `jjbm` / `jjbd` | `jj bookmark` / `jj bookmark list` / `jj bookmark create` / `jj bookmark set` / `jj bookmark move` / `jj bookmark delete` |
+| bookmark 维护 | `jjba` / `jjbf` / `jjbr` / `jjbt` / `jjbu` | `jj bookmark advance` / `jj bookmark forget` / `jj bookmark rename` / `jj bookmark track` / `jj bookmark untrack` |
+| Git 互操作 | `jjgf` / `jjgfa` / `jjgp` / `jjgpa` / `jjgpd` / `jjgpt` / `jjgcl` | `jj git fetch` / `jj git fetch --all-remotes` / `jj git push` / `jj git push --all` / `jj git push --deleted` / `jj git push --tracked` / `jj git clone` |
+| 跳到根目录 | `jjrt` | `cd "$(jj root || echo .)"` |
+
 ## 完整练习流程
 
 下面是一套从零到常用工作流的练习。建议在临时目录或这个练习仓库里执行。
@@ -1003,6 +1107,25 @@ jj git push --bookmark <name>
 | `jj workspace add ../dir -r master@origin -m "msg"` | 基于远端主线创建 workspace |
 | `jj workspace list` | 查看 workspace |
 | `jj workspace forget <name>` | 忘记 workspace |
+
+### Git worktree
+
+| 命令 | 用途 |
+|---|---|
+| `git worktree list` | 查看所有 Git worktree |
+| `git worktree add ../dir -b feature/name main` | 从主线创建 branch 和 worktree |
+| `git worktree add ../dir feature/name` | 用已有 branch 创建 worktree |
+| `git worktree remove ../dir` | 删除干净 worktree |
+| `git worktree prune` | 清理失效 worktree 元数据 |
+
+### alias
+
+| 命令 | 用途 |
+|---|---|
+| `jj config set --user aliases.l '["log", "-r", "all()", "--graph"]'` | 配置 jj 自带 alias |
+| `jj l` | 使用 jj 自带 alias |
+| `plugins=(git jj)` | 启用 Oh My Zsh jj 插件 |
+| `jjst` / `jjl` / `jjd` / `jjn` / `jjgp` | Oh My Zsh 的 shell alias |
 
 ## 最重要的判断规则
 
